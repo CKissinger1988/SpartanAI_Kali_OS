@@ -16,8 +16,29 @@ TOOLS_SOURCE="/home/runner/work/ai-supreme-iso-builder/ai-supreme-iso-builder"
 ADMIN_USER="Creator"
 ADMIN_PASS="@11646"
 
-echo "[*] Downloading Kali ISO from mirror..."
-wget -c --retry-connrefused --tries=5 --timeout=30 "$ISO_URL" -O "$ISO_NAME"
+echo "[*] Downloading Kali ISO (with mirror fallback)..."
+# Try primary, then fallback mirrors
+URLS=(
+    "https://cdimage.kali.org/kali-2026.1/kali-linux-2026.1-live-amd64.iso"
+    "https://mirror.us.leaseweb.net/kali-images/kali-2026.1/kali-linux-2026.1-live-amd64.iso"
+    "https://mirrors.dotsrc.org/kali-images/kali-2026.1/kali-linux-2026.1-live-amd64.iso"
+)
+
+DOWNLOADED=false
+for url in "${URLS[@]}"; do
+    echo "[*] Attempting: $url"
+    if wget -c --retry-connrefused --tries=3 --timeout=15 "$url" -O "$ISO_NAME"; then
+        if [ -s "$ISO_NAME" ]; then
+            DOWNLOADED=true
+            break
+        fi
+    fi
+done
+
+if [ "$DOWNLOADED" = false ]; then
+    echo "[!] Failed to download Kali ISO from all mirrors."
+    exit 1
+fi
 
 echo "[*] Preparing staging areas..."
 mkdir -p "$STAGING_DIR" "$CHROOT_DIR"
