@@ -9,7 +9,7 @@ ISO_NAME="kali-linux-latest.iso"
 STAGING_DIR="/home/runner/staging"
 CHROOT_DIR="/home/runner/chroot"
 OUTPUT_ISO="kali-linux-2026.1-ai-supreme.iso"
-TOOLS_SOURCE="/home/runner/work/ai-supreme-iso-builder/ai-supreme-iso-builder"
+TOOLS_SOURCE="/home/runner/work/Kali-IDE/Kali-IDE"
 
 # User Credentials
 ADMIN_USER="Creator"

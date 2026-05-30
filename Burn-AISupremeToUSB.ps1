@@ -6,7 +6,7 @@
 
 param(
     [string]$DriveLetter = "D",
-    [string]$Repo = "CKissinger1988/ai-supreme-iso-builder",
+    [string]$Repo = "CKissinger1988/Kali-IDE",
     [string]$Tag = "v1.0.0-ai-supreme"
 )
 
