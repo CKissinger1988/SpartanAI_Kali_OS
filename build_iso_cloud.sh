@@ -1,6 +1,6 @@
 #!/bin/bash
 # =========================================================================
-#  AI SUPREME - KALI ISO REMASTER (CLOUD BUILD VERSION)
+#  AI SUPREME - OMNIPOTENT CLOUD ISO FOUNDRY (X200 STEALTH)
 # =========================================================================
 set -e
 
@@ -16,66 +16,36 @@ ADMIN_USER="Creator"
 ADMIN_PASS="@11646"
 
 echo "[*] Downloading Kali ISO (High-Speed Multi-Connection)..."
-# Intelligent Mirror Selection & Probing
 BASE_URLS=(
     "https://mirrors.dotsrc.org/kali-images/kali-2026.1/"
     "https://mirror.us.leaseweb.net/kali-images/kali-2026.1/"
     "https://kali.mirror.garr.it/kali-images/kali-2026.1/"
     "https://mirrors.netix.net/kali-images/kali-2026.1/"
 )
-
-# Potential Filenames (Live preferred, then Installer)
-FILENAMES=(
-    "kali-linux-2026.1-live-amd64.iso"
-    "kali-linux-2026.1-installer-amd64.iso"
-)
+FILENAMES=("kali-linux-2026.1-live-amd64.iso" "kali-linux-2026.1-installer-amd64.iso")
 
 DOWNLOADED=false
 for base in "${BASE_URLS[@]}"; do
     for name in "${FILENAMES[@]}"; do
         FULL_URL="${base}${name}"
         echo "[*] Probing: $FULL_URL"
-        # Quick header check to see if file exists
         if curl --output /dev/null --silent --head --fail "$FULL_URL"; then
             echo "[+] Found! Initiating multi-connection download..."
             if aria2c -x 16 -s 16 -j 16 --allow-overwrite=true --auto-file-renaming=false "$FULL_URL" -o "$ISO_NAME"; then
-                if [ -s "$ISO_NAME" ]; then
-                    DOWNLOADED=true
-                    break 2
-                fi
+                if [ -s "$ISO_NAME" ]; then DOWNLOADED=true; break 2; fi
             fi
         fi
     done
 done
 
-if [ "$DOWNLOADED" = false ]; then
-    echo "[!] Critical Error: Could not retrieve any Kali ISO base."
-    exit 1
-fi
-
-echo "[*] Preparing staging areas..."
-mkdir -p "$STAGING_DIR" "$CHROOT_DIR"
+if [ "$DOWNLOADED" = false ]; then echo "[!] Critical Error: Could not retrieve Kali ISO base."; exit 1; fi
 
 echo "[*] Extracting Kali ISO..."
+mkdir -p "$STAGING_DIR" "$CHROOT_DIR"
 xorriso -osirrox on -indev "$ISO_NAME" -extract / "$STAGING_DIR"
 
-echo "[*] Locating root filesystem..."
-SQUASH_PATH=""
-if [ -f "$STAGING_DIR/live/filesystem.squashfs" ]; then
-    SQUASH_PATH="$STAGING_DIR/live/filesystem.squashfs"
-elif [ -f "$STAGING_DIR/install/filesystem.squashfs" ]; then
-    SQUASH_PATH="$STAGING_DIR/install/filesystem.squashfs"
-else
-    # Search for any squashfs
-    SQUASH_PATH=$(find "$STAGING_DIR" -name "*.squashfs" | head -n 1)
-fi
-
-if [ -z "$SQUASH_PATH" ]; then
-    echo "[!] Error: Could not find SquashFS in ISO."
-    exit 1
-fi
-
-echo "[*] Unsquashing root filesystem ($SQUASH_PATH)..."
+echo "[*] Unsquashing root filesystem..."
+SQUASH_PATH=$(find "$STAGING_DIR" -name "*.squashfs" | head -n 1)
 sudo unsquashfs -d "$CHROOT_DIR" "$SQUASH_PATH"
 
 echo "[*] Preparing Chroot..."
@@ -85,7 +55,7 @@ sudo mount --bind /dev "$CHROOT_DIR/dev"
 sudo mount --bind /dev/pts "$CHROOT_DIR/dev/pts"
 sudo cp /etc/resolv.conf "$CHROOT_DIR/etc/resolv.conf"
 
-echo "[*] Entering Chroot for Installation..."
+echo "[*] Entering Chroot for OMNIPOTENT Installation..."
 sudo chroot "$CHROOT_DIR" /bin/bash <<CHROOT_EOF
 set -e
 export DEBIAN_FRONTEND=noninteractive
@@ -95,101 +65,64 @@ echo "deb http://http.kali.org/kali kali-rolling main contrib non-free non-free-
 apt-get update
 
 # Install Core Dependencies
-apt-get install -y curl wget git nodejs npm python3-pip python3-venv libfuse2t64 desktop-file-utils firefox-esr libnss3 libatk1.0-0t64 libatk-bridge2.0-0t64 libcups2t64 libdrm2 libxkbcommon0 libxcomposite1 libxdamage1 libxrandr2 libgbm1 libpango-1.0-0 libcairo2 libasound2t64 sudo
+apt-get install -y curl wget git nodejs npm python3-pip python3-venv libfuse2t64 desktop-file-utils firefox-esr sudo rsync jq cryptsetup aide auditd apparmor ufw cpulimit shred bleachbit rclone sqlite3 tmux lm-sensors pciutils usbutils smartmontools ethtool htop nvtop iotop fancontrol macchanger tor proxychains4 secure-delete zram-tools
 
 # --- USER CONFIGURATION ---
-echo "[+] Creating admin user: $ADMIN_USER"
-if ! id "$ADMIN_USER" &>/dev/null; then
-    useradd -m -s /bin/bash -G sudo,video,render "$ADMIN_USER"
-fi
+useradd -m -s /bin/bash -G sudo,video,render,disk,dialout,audio,plugdev,input "$ADMIN_USER" || true
 echo "$ADMIN_USER:$ADMIN_PASS" | chpasswd
-
-# --- PASSWORDLESS SUDO ---
-echo "[+] Enabling passwordless sudo for $ADMIN_USER"
 echo "$ADMIN_USER ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/99-ai-supreme
 chmod 0440 /etc/sudoers.d/99-ai-supreme
 
-# --- OLLAMA ---
-echo "[+] Installing Ollama..."
+# --- OLLAMA & GEMMA ---
 curl -fsSL https://ollama.com/install.sh | sh
-
-# --- GEMINI-CLI ---
-echo "[+] Installing Gemini-CLI..."
-npm install -g @google/gemini-cli
-
-# --- ANTIGRAVITY-CLI ---
-echo "[+] Installing Antigravity-CLI (agy)..."
-curl -fsSL https://antigravity.google/cli/install.sh | bash || echo "[!] Official agy install failed."
-
-# --- CODE-SERVER ---
-echo "[+] Installing code-server..."
-curl -fsSL https://code-server.dev/install.sh | sh
-
-# --- LM STUDIO ---
-echo "[+] Integrating LM Studio..."
-wget -O /usr/local/bin/lm-studio.AppImage https://releases.lmstudio.ai/linux/x64/latest/LM_Studio-latest.AppImage
-chmod +x /usr/local/bin/lm-studio.AppImage
-
-# --- SYSTEM ADMINISTRATOR ---
-# Service for Ollama
-cat <<EOF > /etc/systemd/system/ollama.service
-[Unit]
-Description=Ollama Service
-After=network-online.target
-
-[Service]
-ExecStart=/usr/local/bin/ollama serve
-User=root
-Group=root
-Restart=always
-RestartSec=3
-
-[Install]
-WantedBy=multi-user.target
-EOF
 systemctl enable ollama || true
 
-# Jarvis Command
+# --- SOFTWARE SUITE ---
+# Chrome Dev
+wget -q -O - https://dl.google.com/linux/linux_signing_key.pub | gpg --dearmor -o /usr/share/keyrings/google-chrome.gpg
+echo "deb [arch=amd64 signed-by=/usr/share/keyrings/google-chrome.gpg] http://dl.google.com/linux/chrome/deb/ stable main" > /etc/apt/sources.list.d/google-chrome.list
+apt-get update && apt-get install -y google-chrome-unstable
+# code-server
+curl -fsSL https://code-server.dev/install.sh | sh
+# ProtonVPN
+wget -q https://protonvpn.com/download/protonvpn-stable-release_1.0.3-3_all.deb
+dpkg -i protonvpn-stable-release_1.0.3-3_all.deb || apt-get install -f -y
+apt-get update && apt-get install -y protonvpn && rm protonvpn-stable-release_1.0.3-3_all.deb
+
+# --- STEALTH LAYER V4 (X200) CONFIG ---
+# Identity Rotation
+cat <<EOF > /usr/local/bin/ai-supreme-identity-rotate
+#!/bin/bash
+while true; do
+    NEW_HOSTNAME="SYS-\\\$(head /dev/urandom | tr -dc A-Z0-9 | head -c 12)"
+    hostnamectl set-hostname "\\\$NEW_HOSTNAME"
+    for interface in \\\$(ls /sys/class/net | grep -v lo); do
+        ip link set dev "\\\$interface" down
+        macchanger -r "\\\$interface"
+        ip link set dev "\\\$interface" up
+    done
+    sleep 600
+done
+EOF
+chmod +x /usr/local/bin/ai-supreme-identity-rotate
+
+# System AI Commands
 cat <<EOF > /usr/local/bin/jarvis
 #!/bin/bash
-if [ -z "\\\$1" ]; then
-    echo "Jarvis (Gemma): Awaiting orders..."
+if [[ "\\\$1" == "vanish" ]]; then
+    sdmem -f -v
+    rm -rf /var/log/*
+    history -c
     exit 0
 fi
-ollama run gemma "\\\$*"
+ollama run gemma "As JARVIS (Integrated Hardware Sovereign), execute this directive: \\\$*"
 EOF
 chmod +x /usr/local/bin/jarvis
 
 # MOTD
-echo "Welcome to AI SUPREME - KALI EDITION" > /etc/motd
+echo "AI SUPREME OMNIPOTENT WORKSTATION - ASCENDED" > /etc/motd
 echo "User: $ADMIN_USER" >> /etc/motd
 
-CHROOT_EOF
-
-echo "[*] Deploying Local Tools..."
-sudo mkdir -p "$CHROOT_DIR/opt/ai-supreme"
-sudo cp -r "$TOOLS_SOURCE/hexstrike-ai" "$CHROOT_DIR/opt/ai-supreme/" || true
-sudo cp -r "$TOOLS_SOURCE/gemini-cli" "$CHROOT_DIR/opt/ai-supreme/" || true
-sudo cp -r "$TOOLS_SOURCE/lms" "$CHROOT_DIR/opt/ai-supreme/" || true
-sudo cp -r "$TOOLS_SOURCE/gemini-desktop" "$CHROOT_DIR/opt/ai-supreme/" || true
-sudo cp -r "$TOOLS_SOURCE/waveterm" "$CHROOT_DIR/opt/ai-supreme/" || true
-
-echo "[*] Finalizing Tools in Chroot..."
-sudo chroot "$CHROOT_DIR" /bin/bash <<CHROOT_EOF
-set -e
-if [ -d "/opt/ai-supreme/hexstrike-ai" ]; then
-    cd /opt/ai-supreme/hexstrike-ai && pip3 install -r requirements.txt --break-system-packages || true
-fi
-# IDE Entry
-mkdir -p /usr/share/applications
-cat <<EOF > /usr/share/applications/antigravity-2.0.desktop
-[Desktop Entry]
-Name=Antigravity 2.0
-Exec=/usr/bin/firefox http://localhost:8080
-Icon=utilities-terminal
-Type=Application
-Categories=Development;Security;
-EOF
 CHROOT_EOF
 
 echo "[*] Cleaning up Chroot..."
@@ -199,7 +132,8 @@ sudo umount "$CHROOT_DIR/dev/pts" || true
 sudo umount "$CHROOT_DIR/dev" || true
 
 echo "[*] Repacking SquashFS..."
-sudo rm "$STAGING_DIR/live/filesystem.squashfs"
+sudo rm "$STAGING_DIR/live/filesystem.squashfs" || true
+sudo rm "$STAGING_DIR/install/filesystem.squashfs" || true
 sudo mksquashfs "$CHROOT_DIR" "$STAGING_DIR/live/filesystem.squashfs" -comp xz -e boot
 
 echo "[*] Updating checksums..."
