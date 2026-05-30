@@ -16,13 +16,19 @@ jobs:
       - name: Install Remastering Tools
         run: |
           sudo apt-get update
-          sudo apt-get install -y xorriso squashfs-tools isolinux curl aria2
+          sudo apt-get install -y xorriso squashfs-tools isolinux curl aria2 dos2unix
+
+      - name: Prepare Build Environment
+        run: |
+          # Convert line endings to Unix format
+          dos2unix build_iso.sh lib/*.sh
+          chmod +x build_iso.sh
 
       - name: Run Build Script
+        env:
+          ADMIN_PASS: ${{ secrets.ADMIN_PASS }}
         run: |
-          sed -i 's/\r$//' build_iso_cloud.sh
-          chmod +x build_iso_cloud.sh
-          ./build_iso_cloud.sh
+          sudo ./build_iso.sh
 
       - name: Create Release
         uses: softprops/action-gh-release@v2

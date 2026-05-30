@@ -1,0 +1,17 @@
+---
+- name: Harden Kali Linux
+  hosts: default
+  become: yes
+  tasks:
+    - name: Ensure SSH is secure
+      lineinfile:
+        path: /etc/ssh/sshd_config
+        regexp: '^#?PermitRootLogin'
+        line: 'PermitRootLogin no'
+
+    - name: Install defensive auditing tools
+      apt:
+        name:
+          - tshark
+          - python3-scapy
+        state: present

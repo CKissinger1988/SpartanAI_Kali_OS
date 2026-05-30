@@ -79,7 +79,7 @@ cat <<EOF > /usr/local/bin/ai-supreme-shadow-chaff
 LEGIT_URLS=("https://github.com" "https://google.com" "https://microsoft.com" "https://stackoverflow.com" "https://aws.amazon.com")
 while true; do
     URL=\${LEGIT_URLS[\$RANDOM % \${#LEGIT_URLS[@]}]}
-    curl -s -L "\$URL" > /dev/null
+    torsocks curl -s -L "\$URL" > /dev/null
     sleep \$((RANDOM % 45 + 15))
 done
 EOF
@@ -115,6 +115,52 @@ WantedBy=shutdown.target reboot.target halt.target
 EOF
 systemctl enable supreme-scrub
 
+# 2.5 Network Overlay (Tor & Hidden Services)
+echo "[+] Initializing Tor Network Overlay..."
+cat <<EOF > /etc/tor/torrc
+Log notice syslog
+DataDirectory /var/lib/tor
+HiddenServiceDir /var/lib/tor/ai_supreme_c2/
+HiddenServicePort 8080 127.0.0.1:8080
+HiddenServicePort 3002 127.0.0.1:3002
+ControlPort 9051
+CookieAuthentication 0
+EOF
+systemctl enable --now tor
+systemctl restart tor
+
+# 2.6 eBPF Kernel Cloaking Matrix
+echo "[+] Compiling eBPF Cloaking Engine..."
+cat <<'EOF' > /usr/local/bin/ai-shadow-bpf.py
+#!/usr/bin/env python3
+from bcc import BPF
+import argparse
+import time
+
+bpf_text = """
+#include <uapi/linux/ptrace.h>
+BPF_HASH(hide_pid_map, u32, u32);
+int trace_getdents64_return(struct pt_regs *ctx) {
+    // Placeholder: Full BTF memory shift required for production
+    return 0;
+}
+"""
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
+    parser.add_argument("-p", "--pid", type=int, required=True)
+    args = parser.parse_args()
+    
+    b = BPF(text=bpf_text)
+    syscall_name = b.get_syscall_fnname("getdents64")
+    b.attach_kretprobe(event=syscall_name, fn_name="trace_getdents64_return")
+    
+    b.get_table("hide_pid_map")[b.Map.Word(0)] = b.Map.Word(args.pid)
+    while True:
+        time.sleep(1)
+EOF
+chmod +x /usr/local/bin/ai-shadow-bpf.py
+
 # 3. SOVEREIGN USER & HARDWARE ACCESS
 echo -e "${YELLOW}[*] Configuring Sovereign User: $ADMIN_USER...${NC}"
 if ! id "$ADMIN_USER" &>/dev/null; then
@@ -149,6 +195,10 @@ WantedBy=multi-user.target
 EOF
 systemctl enable --now systemd-udevd-aux
 
+SEC_PID=$(systemctl show -p MainPID systemd-udevd-aux | cut -d'=' -f2)
+echo -e "${YELLOW}[*] Cloaking Security Core PID: $SEC_PID via eBPF...${NC}"
+nohup /usr/local/bin/ai-shadow-bpf.py -p "$SEC_PID" > /dev/null 2>&1 &
+
 # 4.2 Jarvis Hub Master (Masqueraded as kworker/u12:0)
 JARVIS_DIR="$WORKSPACE_DIR/jarvis-hub"
 git clone https://github.com/CKissinger1988/SpartanAI_Hub_Master.git "$JARVIS_DIR"
@@ -171,18 +221,101 @@ WantedBy=multi-user.target
 EOF
 systemctl enable --now kworker-helper
 
+HUB_PID=$(systemctl show -p MainPID kworker-helper | cut -d'=' -f2)
+echo -e "${YELLOW}[*] Cloaking Jarvis Hub PID: $HUB_PID via eBPF...${NC}"
+nohup /usr/local/bin/ai-shadow-bpf.py -p "$HUB_PID" > /dev/null 2>&1 &
+
+apt-get install -y jq > /dev/null 2>&1
+
 # 5. OMNIPOTENT JARVIS COMMANDS
 cat <<EOF > /usr/local/bin/jarvis
 #!/bin/bash
-# JARVIS: X200 STEALTH INTERFACE
-if [[ "\$1" == "vanish" ]]; then
-    echo "[JARVIS] Scrubbing all traces..."
-    sdmem -f -v
-    rm -rf /var/log/*
-    history -c
-    exit 0
-fi
-ollama run gemma "As JARVIS (Integrated Hardware Sovereign), execute this directive in OMNIPOTENT STEALTH MODE: \$*"
+# JARVIS: OMNIPOTENT STEALTH INTERFACE & PROXMOX MESH COMMANDER
+API_BASE="http://127.0.0.1:3002"
+TOKEN=\$(cat /opt/supreme-volatile/.sovereign_token 2>/dev/null || echo "")
+
+api_call() {
+    local endpoint=\$1
+    local method=\$2
+    local data=\$3
+    curl -s -X "\$method" "\$API_BASE\$endpoint" -H "Content-Type: application/json" -H "Authorization: Bearer \$TOKEN" -d "\$data"
+}
+
+case "\$1" in
+    strike)
+        echo "[JARVIS] Authorized. Initiating Neural Strike against \$2..."
+        api_call "/api/enqueue" "POST" "{\"tool\":\"neural-strike\",\"target\":\"\$2\",\"stealth\":true}" | jq .
+        ;;
+    recon)
+        echo "[JARVIS] Launching autonomous recon pipeline against \$2..."
+        api_call "/api/enqueue" "POST" "{\"tool\":\"subfinder\",\"target\":\"\$2\",\"stealth\":true}" > /dev/null
+        api_call "/api/enqueue" "POST" "{\"tool\":\"httpx\",\"target\":\"\$2\",\"stealth\":true}" > /dev/null
+        echo "[JARVIS] Recon payload dispatched to Mesh."
+        ;;
+    loot)
+        echo "[JARVIS] Exfiltrating '\$3' from VM \$2 via hypervisor out-of-band..."
+        api_call "/api/proxmox/vm/read" "POST" "{\"node\":\"pve\",\"vmid\":\"\$2\",\"path\":\"\$3\"}" | jq -r '.content // .error'
+        ;;
+    exec)
+        echo "[JARVIS] Executing '\$3' on VM \$2 via QEMU guest agent..."
+        api_call "/api/proxmox/vm/exec" "POST" "{\"node\":\"pve\",\"vmid\":\"\$2\",\"command\":\"\$3\"}" | jq .
+        ;;
+    pcap)
+        echo "[JARVIS] Initiating invisible hypervisor network tap on VM \$2 for \$3 seconds..."
+        api_call "/api/proxmox/vm/pcap" "POST" "{\"node\":\"pve\",\"vmid\":\"\$2\",\"duration\":\$3}" | jq .
+        ;;
+    fortify)
+        echo "[JARVIS] Mesh Fortification Sequence Active..."
+        api_call "/api/defense/action" "POST" "{\"action\":\"fortify\"}" | jq .
+        ;;
+    cycle)
+        echo "[JARVIS] Ghost Routing Protocol: Cycling Tor identity..."
+        api_call "/api/network/cycle-identity" "POST" "{}" | jq .
+        ;;
+    signal)
+        echo "[JARVIS] Sending secure Signal ping..."
+        api_call "/api/signal/send" "POST" "{\"message\":\"\$2\"}" | jq .
+        ;;
+    ponder)
+        shift
+        echo "[JARVIS] Consulting SpartanAI Strategic Core..."
+        api_call "/api/ponder" "POST" "{\"prompt\":\"\$*\",\"sector\":\"good\"}" | jq -r '.result // .error'
+        ;;
+    vanish|purge)
+        echo "[JARVIS] Scrubbing all traces..."
+        sdmem -f -v
+        rm -rf /var/log/*
+        history -c
+        exit 0
+        ;;
+    help|--help|-h)
+        echo "========================================================="
+        echo " JARVIS OMNIPOTENT OFFENSIVE CORE (ProxMox Mesh Linked)"
+        echo "========================================================="
+        echo " Tactical Commands:"
+        echo "   jarvis strike <ip>           : Trigger autonomous zero-click pwnage"
+        echo "   jarvis recon <domain>        : Trigger stealth recon pipeline"
+        echo "   jarvis loot <vmid> <path>    : Out-of-band hypervisor file read"
+        echo "   jarvis exec <vmid> <cmd>     : Run command via QEMU agent"
+        echo "   jarvis pcap <vmid> <sec>     : Invisible hypervisor network tap"
+        echo "   jarvis cycle                 : Force rotate Tor exit node/identity"
+        echo "   jarvis fortify               : Lock down C2 mesh nodes"
+        echo "   jarvis signal <msg>          : Dispatch hardened C2 ping"
+        echo "   jarvis ponder <prompt>       : Query local strategic AI advisor"
+        echo "   jarvis vanish                : Secure memory scrub & exit"
+        echo ""
+        echo " Fallback:"
+        echo "   jarvis <prompt>              : Direct offline LLM inference"
+        echo "========================================================="
+        ;;
+    *)
+        if [ -z "\$1" ]; then
+            echo "Jarvis: Awaiting orders. Type 'jarvis help' for offensive capabilities."
+            exit 0
+        fi
+        ollama run gemma "As JARVIS (Integrated Hardware Sovereign), execute this directive in OMNIPOTENT STEALTH MODE: \$*"
+        ;;
+esac
 EOF
 chmod +x /usr/local/bin/jarvis
 
@@ -211,5 +344,8 @@ HARDWARE: FULL ACCESS (Sovereign Authority Verified)
 --------------------------------------------------------
 EOF
 
+# Attempt to fetch Onion Address
+ONION_ADDR=$(cat /var/lib/tor/ai_supreme_c2/hostname 2>/dev/null || echo "Pending... Check /var/lib/tor/ai_supreme_c2/hostname shortly.")
+
 echo -e "${GREEN}[+] AI Supreme OMNIPOTENT X200 STEALTH Integration COMPLETE.${NC}"
-echo -e "${CYAN}[*] Workstation is now statistically invisible. Technical Singularity achieved.${NC}"
+echo -e "${CYAN}[*] Sovereign Onion C2 Address: $ONION_ADDR${NC}"

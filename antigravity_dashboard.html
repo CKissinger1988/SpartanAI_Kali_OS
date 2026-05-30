@@ -352,7 +352,17 @@
                     <div>TX: <span id="mesh-tx" style="color:var(--text-muted)">N/A</span></div>
                 </div>
 
+                <div class="sidebar-section-title" style="color:#a371f7; border-bottom:1px solid #a371f7; padding-bottom:4px; margin-top:20px;">NETWORK OVERLAY (TOR)</div>
+                <div style="display:flex; flex-direction:column; gap:12px; margin-bottom:20px; font-size:12px;">
+                    <div style="display:flex; flex-direction:column; gap:4px;">
+                        <span style="color:var(--text-muted); font-size:10px;">ROTATION INTERVAL (ms)</span>
+                        <input type="number" id="cfg-cycleInterval" onblur="updateRotationInterval()" placeholder="300000" style="background:#1a1a1a; border:1px solid #333; color:#fff; padding:6px; border-radius:4px; font-size:11px;" />
+                    </div>
+                    <button class="btn-ide" style="border-color:var(--danger); color:var(--danger);" onclick="restartTor()">RESTART TOR SERVICE</button>
+                </div>
+
                 <div class="sidebar-section-title" style="color:#a371f7; border-bottom:1px solid #a371f7; padding-bottom:4px; margin-top:20px;">COGNITIVE ROUTING (LOCAL AI)</div>
+
                 <div style="display:flex; flex-direction:column; gap:12px; margin-bottom:20px; font-size:12px;">
                     <div style="display:flex; flex-direction:column; gap:4px;">
                         <span style="color:var(--text-muted); font-size:10px;">AI PROVIDER</span>
@@ -521,6 +531,27 @@
                 }
             }
         } catch(e) {}
+    }
+
+    async function updateRotationInterval() {
+        const el = document.getElementById('cfg-cycleInterval');
+        const interval = parseInt(el.value);
+        if (isNaN(interval) || interval < 60000) return alert('Invalid interval (min 60000ms)');
+        
+        await fetch(API_BASE + '/api/network/interval', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + authToken },
+            body: JSON.stringify({ interval })
+        });
+        logSupreme(`[NETWORK] Rotation interval set to ${interval}ms`, 'info');
+    }
+
+    async function restartTor() {
+        logSupreme('[NETWORK] Restarting Tor service...', 'info');
+        await fetch(API_BASE + '/api/network/tor/restart', {
+            method: 'POST',
+            headers: { 'Authorization': 'Bearer ' + authToken }
+        });
     }
 
     async function toggleAutomationConfig(key) {
@@ -1064,7 +1095,17 @@
     }
 
     async function destructAllGhosts() { if(true) await fetch(API_BASE + '/api/ghost/destruct-all', { method: 'POST', headers: { 'Authorization': 'Bearer ' + authToken } }); }
-    async function triggerProjectZero() { if(prompt("Enter override code:") === 'SPARTAN-ZERO') fetch(API_BASE + '/api/sovereign/project-zero', { method:'POST', headers:{'Authorization': 'Bearer ' + authToken} }).then(() => location.reload()); }
+    async function triggerProjectZero() {
+        const code = prompt("Enter override code:");
+        if (!code) return;
+        const res = await fetch(API_BASE + '/api/sovereign/project-zero', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + authToken },
+            body: JSON.stringify({ code })
+        });
+        if ((await res.json()).ok) location.reload();
+        else alert('Invalid Override Code.');
+    }
     
     async function cycleGhostIdentity() {
         logSupreme(`[OPSEC] Requesting new Ghost Routing identity (Tor Circuit)...`, 'singularity');
