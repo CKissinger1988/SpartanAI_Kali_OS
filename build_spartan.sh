@@ -4,16 +4,11 @@ set -xe
 # Load configuration if .env exists
 if [ -f .env ]; then
     source .env
+    # Explicitly export variables to ensure they are available to sub-processes
+    export ADMIN_PASS ISO_PATH OUTPUT_ISO
 fi
 
-# Fallback: Use temporary file if provided as argument AND ADMIN_PASS is not already set
-if [ -z "$ADMIN_PASS" ] && [ -n "$1" ] && [ -f "$1" ]; then
-    echo "[*] Reading ADMIN_PASS from $1"
-    export ADMIN_PASS=$(cat "$1")
-    rm "$1"
-fi
-
-# Final check
+# Fallback if ADMIN_PASS is still not set
 if [ -z "$ADMIN_PASS" ]; then
     echo -e "[!] Error: ADMIN_PASS environment variable not set for build. Current user: $(whoami)"
     exit 1
