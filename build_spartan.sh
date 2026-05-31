@@ -1,18 +1,22 @@
 #!/bin/bash
 set -xe
 
-# Load configuration
+# Load configuration if .env exists
 if [ -f .env ]; then
     source .env
-    export ADMIN_PASS ISO_PATH OUTPUT_ISO
-else
-    echo "[!] Error: .env file not found."
-    exit 1
+    export ISO_PATH OUTPUT_ISO
+fi
+
+# Load secret from argument file if provided
+if [ -n "$1" ] && [ -f "$1" ]; then
+    echo "[*] Reading ADMIN_PASS from $1"
+    export ADMIN_PASS=$(cat "$1")
+    rm "$1"
 fi
 
 # Final check
 if [ -z "$ADMIN_PASS" ]; then
-    echo -e "[!] Error: ADMIN_PASS environment variable not set for build. Current user: $(whoami)"
+    echo -e "[!] Error: ADMIN_PASS environment variable not set for build."
     exit 1
 fi
 
