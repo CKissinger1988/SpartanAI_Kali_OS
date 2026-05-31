@@ -4,16 +4,24 @@ set -xe
 # Load configuration if .env exists
 if [ -f .env ]; then
     source .env
-    export ADMIN_PASS ISO_PATH OUTPUT_ISO
 fi
 
-# Debug: Check if variables were set
-echo "[*] ADMIN_PASS set? [${ADMIN_PASS:+yes}]"
+# Try reading from local admin_secret.txt (for CI)
+if [ -f "admin_secret.txt" ]; then
+    echo "[*] Reading ADMIN_PASS from admin_secret.txt"
+    export ADMIN_PASS=$(cat "admin_secret.txt")
+    # Do not delete this file yet, as it might be needed for sub-processes
+fi
 
 # Final check
 if [ -z "$ADMIN_PASS" ]; then
     echo -e "[!] Error: ADMIN_PASS environment variable not set for build. Current user: $(whoami)"
     exit 1
+fi
+
+# Cleanup secret file after initialization
+if [ -f "admin_secret.txt" ]; then
+    rm admin_secret.txt
 fi
 
 # Download ISO if not found
