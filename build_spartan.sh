@@ -9,6 +9,11 @@ else
     exit 1
 fi
 
+if [ -z "$ADMIN_PASS" ]; then
+    echo -e "[!] Error: ADMIN_PASS environment variable not set for build."
+    exit 1
+fi
+
 # Paths
 STAGING_DIR="/opt/kali_remaster_staging"
 CHROOT_DIR="/opt/kali_chroot"
