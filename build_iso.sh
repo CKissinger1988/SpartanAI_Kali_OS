@@ -41,19 +41,10 @@ trap 'echo -e "\033[1;33m[*] Cleaning up mounts...\033[0m"; teardown_mounts "$CH
 mkdir -p "$CHROOT_DIR/lib"
 cp -r lib/* "$CHROOT_DIR/lib/"
 
-# Copy entire codebase for sovereign core installation
-echo "[*] Staging Sovereign Core codebase..."
-mkdir -p "$CHROOT_DIR/opt/kali-ide"
-# Copy all relevant files (avoiding node_modules, .git, etc. if possible but for simplicity let's use rsync or selective cp)
-cp -r src "$CHROOT_DIR/opt/kali-ide/"
-cp -r dashboard "$CHROOT_DIR/opt/kali-ide/"
-cp api_*.js "$CHROOT_DIR/opt/kali-ide/"
-cp package*.json "$CHROOT_DIR/opt/kali-ide/"
-cp *.sh "$CHROOT_DIR/opt/kali-ide/"
-cp README.md "$CHROOT_DIR/opt/kali-ide/"
-cp -r lib "$CHROOT_DIR/opt/kali-ide/"
-cp -r hexstrike-ai "$CHROOT_DIR/opt/kali-ide/"
-cp -r security-audit-agent "$CHROOT_DIR/opt/kali-ide/"
+# Staging SpartanAI Command Center Frontend
+echo "[*] Staging SpartanAI Command Center Frontend..."
+mkdir -p "$CHROOT_DIR/opt/spartanai-command-center"
+rsync -a --exclude='node_modules' --exclude='.git' spartanai-command-center/ "$CHROOT_DIR/opt/spartanai-command-center/"
 
 # 4. Installation Phase
 echo -e "\033[1;33m[*] Entering Chroot for AI Tool Integration...\033[0m"
@@ -73,14 +64,13 @@ install_dependencies
 configure_user "$ADMIN_USER" "$ADMIN_PASS"
 install_ai_tools
 
-# Building Sovereign Dashboard inside chroot
-echo "[*] Building Sovereign Dashboard inside chroot..."
-cd /opt/kali-ide/dashboard
+# Building and Deploying SpartanAI Command Center
+echo "[*] Building and Deploying SpartanAI Command Center..."
+cd /opt/spartanai-command-center/dashboard
 npm install --silent
 npm run build --silent
-
-# Deploy the Sovereign Core (Dashboard + Orchestrator)
-deploy_sovereign_core
+# Assuming deploy_sovereign_core or a similar mechanism handles the final setup
+# Add specific deployment commands here if needed
 
 # 5. Purify Phase (Cleanup)
 echo "[*] Purifying the Sovereign Core environment..."
