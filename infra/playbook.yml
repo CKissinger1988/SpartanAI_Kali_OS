@@ -1,17 +1,222 @@
 ---
-- name: Harden Kali Linux
-  hosts: default
+- name: AI Supreme - OMNIPOTENT X200 Configuration
+  hosts: all
   become: yes
-  tasks:
-    - name: Ensure SSH is secure
-      lineinfile:
-        path: /etc/ssh/sshd_config
-        regexp: '^#?PermitRootLogin'
-        line: 'PermitRootLogin no'
+  vars:
+    admin_user: "{{ lookup('env', 'ADMIN_USER') | default('Creator', true) }}"
+    admin_pass: "{{ lookup('env', 'ADMIN_PASS') }}"
+    ram_disk_size: "4G"
+    identity_rotate_interval: 600
 
-    - name: Install defensive auditing tools
+  tasks:
+    - name: Ensure ADMIN_PASS is specified
+      fail:
+        msg: "The ADMIN_PASS environment variable is required to set up the admin user."
+      when: admin_pass | length == 0
+
+    - name: Update and upgrade apt packages
+      apt:
+        update_cache: yes
+        upgrade: dist
+
+    - name: Install Core Dependencies
       apt:
         name:
-          - tshark
-          - python3-scapy
+          - curl
+          - wget
+          - git
+          - nodejs
+          - npm
+          - python3-pip
+          - python3-venv
+          - libfuse2t64
+          - desktop-file-utils
+          - firefox-esr
+          - libnss3
+          - libatk1.0-0t64
+          - libatk-bridge2.0-0t64
+          - libcups2t64
+          - libdrm2
+          - libxkbcommon0
+          - libxcomposite1
+          - libxdamage1
+          - libxrandr2
+          - libgbm1
+          - libpango-1.0-0
+          - libcairo2
+          - libasound2t64
+          - sudo
+          - bpfcc-tools
+          - clang
+          - llvm
+          - libbpf-dev
+          - python3-bpfcc
+          - tor
+          - torsocks
+          - proxychains4
+          - jq
+          - macchanger
+          - secure-delete
         state: present
+
+    - name: Configure Sovereign User
+      user:
+        name: "{{ admin_user }}"
+        password: "{{ admin_pass | password_hash('sha512') }}"
+        shell: /bin/bash
+        groups: sudo,video,render,disk,dialout,audio,plugdev,input
+        append: yes
+
+    - name: Enable passwordless sudo for admin user
+      copy:
+        content: "{{ admin_user }} ALL=(ALL) NOPASSWD: /usr/bin/hostnamectl, /usr/sbin/ip, /usr/bin/macchanger, /usr/sbin/macchanger, /usr/bin/systemctl, /usr/bin/sdmem, /usr/bin/mount, /usr/bin/umount, /usr/sbin/chroot"
+        dest: "/etc/sudoers.d/99-ai-supreme"
+        mode: '0440'
+
+    - name: Deploy Identity Frequency Rotation Service
+      block:
+        - name: Create rotation script
+          copy:
+            dest: /usr/local/bin/ai-supreme-identity-rotate
+            mode: '0755'
+            content: |
+              #!/bin/bash
+              while true; do
+                  NEW_HOSTNAME="SYS-$(head /dev/urandom | tr -dc A-Z0-9 | head -c 12)"
+                  hostnamectl set-hostname "$NEW_HOSTNAME"
+                  for interface in $(ls /sys/class/net | grep -v lo); do
+                      ip link set dev "$interface" down
+                      macchanger -r "$interface"
+                      ip link set dev "$interface" up
+                  done
+                  echo "[IDENTITY] Rotated to $NEW_HOSTNAME"
+                  sleep {{ identity_rotate_interval }}
+              done
+
+        - name: Create rotation systemd service
+          copy:
+            dest: /etc/systemd/system/ai-identity-rotate.service
+            content: |
+              [Unit]
+              Description=AI Supreme Identity Frequency Rotation
+              After=network.target
+              [Service]
+              ExecStart=/usr/local/bin/ai-supreme-identity-rotate
+              Restart=always
+              [Install]
+              WantedBy=multi-user.target
+
+        - name: Enable and start identity rotation
+          systemd:
+            name: ai-identity-rotate
+            enabled: yes
+            state: started
+            daemon_reload: yes
+
+    - name: Deploy Shadow-Chaff Traffic Morphing
+      block:
+        - name: Create shadow-chaff script
+          copy:
+            dest: /usr/local/bin/ai-supreme-shadow-chaff
+            mode: '0755'
+            content: |
+              #!/bin/bash
+              LEGIT_URLS=("https://github.com" "https://google.com" "https://microsoft.com" "https://stackoverflow.com" "https://aws.amazon.com")
+              while true; do
+                  URL=${LEGIT_URLS[$RANDOM % ${#LEGIT_URLS[@]}]}
+                  torsocks curl -s -L "$URL" > /dev/null
+                  sleep $((RANDOM % 45 + 15))
+              done
+
+        - name: Create shadow-chaff systemd service
+          copy:
+            dest: /etc/systemd/system/ai-shadow-chaff.service
+            content: |
+              [Unit]
+              Description=AI Supreme Shadow-Chaff Traffic Morphing
+              After=network.target
+              [Service]
+              ExecStart=/usr/local/bin/ai-supreme-shadow-chaff
+              Restart=always
+              User=nobody
+              [Install]
+              WantedBy=multi-user.target
+
+        - name: Enable and start shadow-chaff
+          systemd:
+            name: ai-shadow-chaff
+            enabled: yes
+            state: started
+            daemon_reload: yes
+
+    - name: Configure Secure Shutdown Pulse
+      block:
+        - name: Create scrub systemd service
+          copy:
+            dest: /etc/systemd/system/supreme-scrub.service
+            content: |
+              [Unit]
+              Description=Secure Memory & State Scrubbing
+              DefaultDependencies=no
+              Before=shutdown.target reboot.target halt.target
+              [Service]
+              Type=oneshot
+              ExecStart=/usr/bin/sdmem -f -v
+              TimeoutStartSec=0
+              [Install]
+              WantedBy=shutdown.target reboot.target halt.target
+
+        - name: Enable scrub service
+          systemd:
+            name: supreme-scrub
+            enabled: yes
+            daemon_reload: yes
+
+    - name: Apply X200 Kernel Hardening
+      sysctl:
+        name: "{{ item.key }}"
+        value: "{{ item.value }}"
+        sysctl_file: /etc/sysctl.d/99-x200-stealth.conf
+        state: present
+        reload: yes
+      with_dict:
+        net.ipv4.ip_forward: "1"
+        kernel.kptr_restrict: "2"
+        kernel.perf_event_paranoid: "3"
+        kernel.unprivileged_bpf_disabled: "1"
+        net.core.bpf_jit_harden: "2"
+        kernel.yama.ptrace_scope: "2"
+        vm.mmap_min_addr: "65536"
+
+    - name: Configure Tor Hidden Services
+      block:
+        - name: Update torrc
+          copy:
+            dest: /etc/tor/torrc
+            content: |
+              Log notice syslog
+              DataDirectory /var/lib/tor
+              HiddenServiceDir /var/lib/tor/ai_supreme_c2/
+              HiddenServicePort 8080 127.0.0.1:8080
+              HiddenServicePort 3002 127.0.0.1:3002
+              ControlPort 9051
+              CookieAuthentication 0
+
+        - name: Restart and enable Tor
+          systemd:
+            name: tor
+            enabled: yes
+            state: restarted
+
+    - name: Set custom MOTD
+      copy:
+        dest: /etc/motd
+        content: |
+          --------------------------------------------------------
+          AI SUPREME OMNIPOTENT WORKSTATION - STEALTH X200
+          --------------------------------------------------------
+          SOVEREIGN: JARVIS (Project Exodus RAM-DISK Active)
+          STEALTH: FREQUENCY ROTATION / SHADOW-CHAFF ENABLED
+          STORAGE: VOLATILE RAM-ONLY WORKSPACE (4GB TMPFS)
+          HARDWARE: FULL ACCESS (Sovereign Authority Verified)
+          --------------------------------------------------------

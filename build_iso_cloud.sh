@@ -11,9 +11,17 @@ CHROOT_DIR="/home/runner/chroot"
 OUTPUT_ISO="kali-linux-2026.1-ai-supreme.iso"
 TOOLS_SOURCE="/home/runner/work/Kali-IDE/Kali-IDE"
 
+# Load Environment Variables if present
+if [ -f .env ]; then
+    export $(grep -v '^#' .env | xargs)
+fi
+
 # User Credentials
-ADMIN_USER="Creator"
-ADMIN_PASS="@11646"
+ADMIN_USER="${ADMIN_USER:-Creator}"
+if [ -z "$ADMIN_PASS" ]; then
+    echo -e "\033[0;31m[!] Error: ADMIN_PASS environment variable not set for cloud build.\033[0m"
+    exit 1
+fi
 
 echo "[*] Downloading Kali ISO (High-Speed Multi-Connection)..."
 BASE_URLS=(
@@ -70,7 +78,7 @@ apt-get install -y curl wget git nodejs npm python3-pip python3-venv libfuse2t64
 # --- USER CONFIGURATION ---
 useradd -m -s /bin/bash -G sudo,video,render,disk,dialout,audio,plugdev,input "$ADMIN_USER" || true
 echo "$ADMIN_USER:$ADMIN_PASS" | chpasswd
-echo "$ADMIN_USER ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/99-ai-supreme
+echo "$ADMIN_USER ALL=(ALL) NOPASSWD: /usr/bin/hostnamectl, /usr/sbin/ip, /usr/bin/macchanger, /usr/sbin/macchanger, /usr/bin/systemctl, /usr/bin/sdmem, /usr/bin/mount, /usr/bin/umount, /usr/sbin/chroot" > /etc/sudoers.d/99-ai-supreme
 chmod 0440 /etc/sudoers.d/99-ai-supreme
 
 # --- OLLAMA & GEMMA ---

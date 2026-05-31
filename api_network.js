@@ -54,7 +54,7 @@ function startRotationTimer() {
     intervalTimer = setInterval(() => {
         console.log(`[NETWORK] Triggering scheduled Tor identity rotation...`);
         cycleTorIdentity().catch(() => {});
-    }, cycleInterval);
+    }, currentInterval);
 }
 
 // POST /api/network/cycle-identity
@@ -74,10 +74,10 @@ router.post('/interval', (req, res) => {
     if (typeof interval !== 'number' || interval < 60000) {
         return res.status(400).json({ ok: false, error: 'Invalid interval (min 60000ms)' });
     }
-    cycleInterval = interval;
+    currentInterval = interval;
     startRotationTimer();
-    console.log(`[NETWORK] Rotation interval updated to ${cycleInterval}ms.`);
-    res.json({ ok: true, interval: cycleInterval });
+    console.log(`[NETWORK] Rotation interval updated to ${currentInterval}ms.`);
+    res.json({ ok: true, interval: currentInterval });
 });
 
 // POST /api/network/tor/restart
