@@ -56,7 +56,6 @@
           - proxychains4
           - jq
           - macchanger
-          - secure-delete
         state: present
 
     - name: Configure Sovereign User
@@ -69,16 +68,16 @@
 
     - name: Enable passwordless sudo for admin user
       copy:
-        content: "{{ admin_user }} ALL=(ALL) NOPASSWD: /usr/bin/hostnamectl, /usr/sbin/ip, /usr/bin/macchanger, /usr/sbin/macchanger, /usr/bin/systemctl, /usr/bin/sdmem, /usr/bin/mount, /usr/bin/umount, /usr/sbin/chroot"
+        content: "{{ admin_user }} ALL=(ALL) NOPASSWD: /usr/bin/hostnamectl, /usr/sbin/ip, /usr/bin/macchanger, /usr/sbin/macchanger, /usr/bin/systemctl, /usr/bin/mount, /usr/bin/umount, /usr/sbin/chroot"
         dest: "/etc/sudoers.d/99-ai-supreme"
-        mode: '0440'
+        mode: "0440"
 
     - name: Deploy Identity Frequency Rotation Service
       block:
         - name: Create rotation script
           copy:
             dest: /usr/local/bin/ai-supreme-identity-rotate
-            mode: '0755'
+            mode: "0755"
             content: |
               #!/bin/bash
               while true; do
@@ -118,7 +117,7 @@
         - name: Create shadow-chaff script
           copy:
             dest: /usr/local/bin/ai-supreme-shadow-chaff
-            mode: '0755'
+            mode: "0755"
             content: |
               #!/bin/bash
               LEGIT_URLS=("https://github.com" "https://google.com" "https://microsoft.com" "https://stackoverflow.com" "https://aws.amazon.com")
@@ -147,29 +146,6 @@
             name: ai-shadow-chaff
             enabled: yes
             state: started
-            daemon_reload: yes
-
-    - name: Configure Secure Shutdown Pulse
-      block:
-        - name: Create scrub systemd service
-          copy:
-            dest: /etc/systemd/system/supreme-scrub.service
-            content: |
-              [Unit]
-              Description=Secure Memory & State Scrubbing
-              DefaultDependencies=no
-              Before=shutdown.target reboot.target halt.target
-              [Service]
-              Type=oneshot
-              ExecStart=/usr/bin/sdmem -f -v
-              TimeoutStartSec=0
-              [Install]
-              WantedBy=shutdown.target reboot.target halt.target
-
-        - name: Enable scrub service
-          systemd:
-            name: supreme-scrub
-            enabled: yes
             daemon_reload: yes
 
     - name: Apply X200 Kernel Hardening
@@ -220,3 +196,25 @@
           STORAGE: VOLATILE RAM-ONLY WORKSPACE (4GB TMPFS)
           HARDWARE: FULL ACCESS (Sovereign Authority Verified)
           --------------------------------------------------------
+
+    - name: Verify Tor and Hidden Services
+      block:
+        - name: Check if Tor service is active
+          command: systemctl is-active tor
+          register: tor_status
+          changed_when: false
+
+        - name: Wait for Hidden Service hostname to be generated
+          wait_for:
+            path: /var/lib/tor/ai_supreme_c2/hostname
+            state: present
+            timeout: 30
+
+        - name: Retrieve Onion Address
+          slurp:
+            src: /var/lib/tor/ai_supreme_c2/hostname
+          register: onion_address
+
+        - name: Display C2 Onion Address
+          debug:
+            msg: "AI Supreme C2 Hidden Service is LIVE at: {{ onion_address['content'] | b64decode | trim }}"
