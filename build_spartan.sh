@@ -3,7 +3,8 @@ set -xe
 
 # Load configuration
 if [ -f .env ]; then
-    export $(grep -v '^#' .env | xargs)
+    source .env
+    export ADMIN_PASS ISO_PATH OUTPUT_ISO
 else
     echo "[!] Error: .env file not found."
     exit 1
