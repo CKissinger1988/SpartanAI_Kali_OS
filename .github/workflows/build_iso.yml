@@ -33,7 +33,7 @@ jobs:
           echo "ISO_PATH=kali-linux-2026.1-live-amd64.iso" >> .env
           echo "OUTPUT_ISO=kali-linux-2026.1-spartanai.iso" >> .env
           chmod +x build_spartan.sh
-          sudo ./build_spartan.sh
+          sudo -E ./build_spartan.sh
 
       - name: Create Release
         uses: softprops/action-gh-release@v2
