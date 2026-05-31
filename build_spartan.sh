@@ -3,22 +3,23 @@ set -xe
 
 # Load configuration if .env exists
 if [ -f .env ]; then
-    echo "[*] Loading .env file..."
-    cat .env
     source .env
-    
-    # Debug: Check if variables were set
-    echo "[*] ADMIN_PASS set? [${ADMIN_PASS:+yes}]"
-    
-    # Explicitly export variables
-    export ADMIN_PASS="${ADMIN_PASS}"
-    export ISO_PATH="${ISO_PATH}"
-    export OUTPUT_ISO="${OUTPUT_ISO}"
-else
-    echo "[!] .env file not found."
 fi
 
-# Fallback if ADMIN_PASS is still not set
+# Explicitly read ADMIN_PASS from secure temp file
+if [ -f "/tmp/admin_secret" ]; then
+    echo "[*] Reading ADMIN_PASS from /tmp/admin_secret"
+    export ADMIN_PASS=$(cat /tmp/admin_secret)
+    rm /tmp/admin_secret
+else
+    echo "[!] /tmp/admin_secret not found."
+fi
+
+# Debug: Check if variables were set
+echo "[*] ADMIN_PASS set? [${ADMIN_PASS:+yes}]"
+echo "[*] ADMIN_PASS length: ${#ADMIN_PASS}"
+
+# Final check
 if [ -z "$ADMIN_PASS" ]; then
     echo -e "[!] Error: ADMIN_PASS environment variable not set for build. Current user: $(whoami)"
     exit 1
