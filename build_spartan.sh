@@ -6,23 +6,17 @@ if [ -f .env ]; then
     source .env
 fi
 
-# Try getting ADMIN_PASS from the environment first
-if [ -n "$ADMIN_PASS" ]; then
-    echo "[*] ADMIN_PASS found in environment."
-elif [ -f "admin_secret.txt" ]; then
-    echo "[*] Reading ADMIN_PASS from admin_secret.txt"
-    export ADMIN_PASS=$(cat "admin_secret.txt")
+# Load secret from build_config.conf if it exists (for CI)
+if [ -f "build_config.conf" ]; then
+    echo "[*] Sourcing ADMIN_PASS from build_config.conf"
+    source build_config.conf
+    rm build_config.conf
 fi
 
 # Final check
 if [ -z "$ADMIN_PASS" ]; then
     echo -e "[!] Error: ADMIN_PASS environment variable not set for build. Current user: $(whoami)"
     exit 1
-fi
-
-# Cleanup secret file after initialization
-if [ -f "admin_secret.txt" ]; then
-    rm admin_secret.txt
 fi
 
 # Download ISO if not found
