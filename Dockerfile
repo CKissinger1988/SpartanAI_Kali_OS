@@ -11,17 +11,20 @@ RUN apt-get update && apt-get install -y \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy root package files
-COPY package.json package-lock.json ./
+COPY package*.json ./
+
+# Debug: list files to verify existence of package-lock.json
+RUN ls -la
 
 # Install root dependencies
-RUN npm ci
+RUN npm install
 
 # Copy dashboard code
 COPY dashboard ./dashboard
 
 # Build dashboard
 WORKDIR /app/dashboard
-RUN npm ci
+RUN npm install
 RUN npm run build
 
 # Copy server code
