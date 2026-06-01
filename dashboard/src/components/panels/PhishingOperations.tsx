@@ -42,7 +42,7 @@ export default function PhishingOperations() {
         setCampaigns(res.campaigns);
       }
     } catch (err) {
-      
+      console.error(err);
     } finally {
       setLoading(false);
     }
@@ -56,7 +56,7 @@ export default function PhishingOperations() {
         setCredentials(res.credentials);
       }
     } catch (err) {
-      
+      console.error(err);
     } finally {
       setLoadingCreds(false);
     }
@@ -70,36 +70,32 @@ export default function PhishingOperations() {
   const handleLaunch = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!campaignName || !targetEmails) return;
-    
+
     setIsLaunching(true);
     try {
       await apiFetch('/api/phishing/launch', {
         method: 'POST',
         body: JSON.stringify({ name: campaignName, targets: targetEmails.split('\n') })
       });
-      
+
       setCampaignName('');
       setTargetEmails('');
       loadCampaigns();
     } catch (err) {
-      
-      
+      console.error(err);
     } finally {
       setIsLaunching(false);
     }
   };
 
   const handleDelete = async (id: string) => {
-    if (!window.true) return;
-    
     try {
       await apiFetch(`/api/phishing/campaigns/${id}`, {
         method: 'DELETE'
       });
       loadCampaigns();
     } catch (err) {
-      
-      
+      console.error(err);
     }
   };
 
@@ -112,7 +108,7 @@ export default function PhishingOperations() {
         body: JSON.stringify({ active: newState })
       });
     } catch (err) {
-      
+      console.error(err);
       setJarvisActive(!newState); // Revert on failure
     }
   };
@@ -131,8 +127,8 @@ export default function PhishingOperations() {
 
   // Pagination Logic
   const totalPages = Math.max(1, Math.ceil(campaigns.length / itemsPerPage));
-  const paginatedCampaigns = campaigns.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
-  
+  const paginatedCampaigns = campaigns.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);  
+
   const nextPage = () => setCurrentPage(p => Math.min(totalPages, p + 1));
   const prevPage = () => setCurrentPage(p => Math.max(1, p - 1));
 
@@ -147,7 +143,7 @@ export default function PhishingOperations() {
           >
             {loading || loadingCreds ? 'Polling...' : 'Refresh Intel'}
           </button>
-          <button
+          <button 
             onClick={toggleJarvis}
             className={`px-3 py-1 rounded text-[12px] font-bold border transition-colors flex items-center gap-2 ${
               jarvisActive 
@@ -167,7 +163,7 @@ export default function PhishingOperations() {
             <div className="flex flex-col gap-1.5">
                 <label className="text-[9px] text-[#555] font-bold uppercase">Campaign Designation</label>
                 <input 
-                    type="text"
+                    type="text" 
                     value={campaignName}
                     onChange={(e) => setCampaignName(e.target.value)}
                     placeholder="OP_SPEARPHISH_01"
@@ -186,7 +182,7 @@ export default function PhishingOperations() {
                 />
             </div>
             <button 
-                type="submit"
+                type="submit" 
                 disabled={isLaunching}
                 className="mt-2 bg-blue-600 hover:bg-blue-500 disabled:bg-[#333] disabled:text-[#888] text-white text-[11px] font-bold py-2.5 rounded shadow-lg transition-all active:scale-95"
             >
