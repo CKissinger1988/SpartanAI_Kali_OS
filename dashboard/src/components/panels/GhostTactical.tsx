@@ -17,7 +17,7 @@ export default function GhostTactical() {
       const res = await apiFetch('/api/ghost/nodes');
       if (res.ok) setGhosts(res.ghosts);
     } catch (err) {
-      
+      console.error(err);
     } finally {
       setLoading(false);
     }
@@ -29,19 +29,18 @@ export default function GhostTactical() {
         method: 'POST',
         body: JSON.stringify({ action })
       });
-      } action dispatched to ${hostname}.`);
+      console.log(`Action dispatched to ${hostname}.`);
     } catch (err) {
-      
+      console.error(err);
     }
   };
 
   const destructAll = async () => {
-    if (!window.true) return;
     try {
       await apiFetch('/api/ghost/destruct-all', { method: 'POST' });
       loadGhosts();
     } catch (err) {
-      
+      console.error(err);
     }
   };
 
@@ -137,7 +136,8 @@ export default function GhostTactical() {
                     if(!msg) return;
                     await apiFetch('/api/signal/send', { method: 'POST', body: JSON.stringify({ message: msg }) });
                     
-                    (document.getElementById('signal-msg') as HTMLInputElement).value = '';
+                    const el = document.getElementById('signal-msg') as HTMLInputElement;
+                    if (el) el.value = '';
                 }}
                 className="bg-cyan-600 hover:bg-cyan-500 text-white px-5 py-2 rounded-lg text-xs font-bold transition-all"
             >

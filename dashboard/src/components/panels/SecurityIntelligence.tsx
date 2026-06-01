@@ -33,14 +33,14 @@ export default function SecurityIntelligence() {
       setLoading(true);
       const res = await apiFetch('/api/proxmox/vulnerabilities');
       if (res.ok) setVulns(res.data);
-      
+
       const statusRes = await apiFetch('/api/hexstrike/status');
       if (statusRes.ok) setEngineStatus(statusRes.state);
-
+      
       const pivotRes = await apiFetch('/api/hexstrike/pivots');
       if (pivotRes.ok) setPivots(pivotRes.pivots);
     } catch (err) {
-      
+      console.error(err);
     } finally {
       setLoading(false);
     }
@@ -60,15 +60,13 @@ export default function SecurityIntelligence() {
   };
 
   const handleHexstrike = async (v: Vulnerability) => {
-    if (!window.true) return;
     try {
       await apiFetch('/api/proxmox/vm/snapshot', {
         method: 'POST',
         body: JSON.stringify({ target: v.ip, type: 'pre-strike-failsafe' })
       });
-      
     } catch (err) {
-      
+      console.error(err);
     }
   };
 
