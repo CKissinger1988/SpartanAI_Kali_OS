@@ -43,4 +43,5 @@ jobs:
           service: ai-supreme-sovereign-core
           image: us-central1-docker.pkg.dev/${{ steps.auth.outputs.project_id }}/spartan-images/ai-supreme-sovereign-core:latest
           region: us-central1
-          flags: --allow-unauthenticated
+          flags: '--allow-unauthenticated --memory=1Gi --cpu=1 --timeout=300'
+

@@ -10,28 +10,24 @@ RUN apt-get update && apt-get install -y \
     g++ \
     && rm -rf /var/lib/apt/lists/*
 
-# Copy root package files
+# Copy package files
 COPY package*.json ./
 
-# Install root dependencies
+# Install dependencies (including native modules)
 RUN npm install
 
-# Copy dashboard code
+# Copy dashboard code and build it
 COPY dashboard ./dashboard
-
-# Build dashboard
 WORKDIR /app/dashboard
 RUN npm install
 RUN npm run build
 
-# Copy server code
+# Copy server code and bundle it
 WORKDIR /app
 COPY src ./src
 COPY lib ./lib
 COPY api_*.cjs ./
 COPY .env ./
-
-# Bundle server
 RUN npm run build:bundle
 
 # Production image
@@ -39,22 +35,18 @@ FROM node:20-slim
 
 WORKDIR /app
 
-# Install dependencies needed for the server
+# Install runtime dependencies (like tor)
 RUN apt-get update && apt-get install -y \
     curl \
     tor \
-    python3 \
-    make \
-    g++ \
     && rm -rf /var/lib/apt/lists/*
 
-# Copy package files and install production dependencies
-COPY package.json package-lock.json ./
-RUN npm install --omit=dev
-
-# Copy bundled server and built dashboard
+# Copy only the necessary files from builder
+# We need node_modules for better-sqlite3 native bindings
+COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/dist/server.js ./dist/server.js
 COPY --from=builder /app/dashboard/dist ./dashboard/dist
+COPY --from=builder /app/package.json ./package.json
 
 # Start the server
 CMD ["node", "dist/server.js"]
