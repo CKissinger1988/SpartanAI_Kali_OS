@@ -51,6 +51,11 @@ app.use(limiter);
 app.use(cors());
 app.use(express.json({ limit: '1mb' }));
 
+// Health Check
+app.get('/', (req, res) => {
+  res.status(200).send('AI Supreme Sovereign Core - ACTIVE');
+});
+
 // Auth Middleware
 const authenticateSovereign = (req: any, res: any, next: any) => {
     const authHeader = req.headers.authorization;
@@ -147,7 +152,7 @@ app.get('/{*splat}', (req, res) => {
   res.sendFile(path.join(__dirname, '../dashboard/dist/index.html'));
 });
 
-httpServer.listen(PORT, () => {
+httpServer.listen(Number(PORT), '0.0.0.0', () => {
   console.log(`=================================================`);
   console.log(` AI SUPREME SOVEREIGN CORE ACTIVE ON PORT ${PORT}`);
   console.log(`=================================================`);
